@@ -3,7 +3,7 @@
 #include "StatusEffect.h"
 #include "BoardStatus.h"
 
-#define HYSTERESIS_ITERATIONS 5
+#define HYSTERESIS_ITERATIONS 10
 
 struct Parchment {
 	bool bReady = false;
@@ -59,6 +59,10 @@ struct Parchment {
 			break;
 		default:
 			break;
+		}
+
+		if (Out && DEBUG_MEMORY) {
+			DebugMemory::IncrementEffectsCreated();
 		}
 
 		return Out;

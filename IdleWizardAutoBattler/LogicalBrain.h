@@ -3,7 +3,7 @@
 #include "Resources.h"
 #include <map>
 
-#define HEAL_SLEEP 5
+#define HEAL_SLEEP 15
 
 struct Parchment;
 class StatusEffect;

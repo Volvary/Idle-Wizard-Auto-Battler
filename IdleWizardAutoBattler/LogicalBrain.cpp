@@ -34,6 +34,8 @@ void LogicalBrain::QueueMovementEvent(int posX, int posY, bool bShouldClick)
 	}
 
 	SendInput(3, Inputs, sizeof(INPUT));
+
+	interactionSleep = 10;
 }
 
 void LogicalBrain::DecideInteractionForFrame()
