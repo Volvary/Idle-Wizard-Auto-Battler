@@ -59,8 +59,8 @@ void ScreenReader::LoadScreenToBuffer()
 {
 	DeleteDC(capturedDC);
 
-	const int nScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-	const int nScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+	static const int nScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	static const int nScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	BringWindowToTop(idleWizardHWND);
 
@@ -77,6 +77,8 @@ void ScreenReader::LoadScreenToBuffer()
 		BitBlt(hCaptureDC, 0, 0, nScreenWidth, nScreenHeight,
 			hDesktopDC, 0, 0, SRCCOPY | CAPTUREBLT);
 		//bmpPrinter.CreateBMPFile(LPTSTR(L"LastFrame.bmp"), hCaptureBitmap);
+
+		DeleteObject(hCaptureBitmap);
 	}
 
 	ReleaseDC(idleWizardHWND, hDesktopDC);
