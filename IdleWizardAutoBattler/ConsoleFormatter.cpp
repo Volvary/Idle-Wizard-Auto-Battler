@@ -66,7 +66,7 @@ void ConsoleFormatter::WriteStatusToScreen(BoardStatus* boardState)
 		PrintAtCoord(0 + 25 * (boardState->hand[i]->position % 3),
 			2 + (int)(boardState->hand[i]->position * 0.35),				//Rounding error here is better than waiting for division to happen since we know max hand is 6.
 			//hand[i]->bReady ? "Ready" : "Charging(" + std::to_string((unsigned int)hand[i]->readyPixelColor) + ")" ,
-			(boardState->hand[i]->bReady ? "R " : "C ") + boardState->hand[i]->spell->name + " (" + boardState->hand[i]->averageIconColor.ToString(true) + ")",
+			(boardState->hand[i]->bReady ? "R " : "C ") + boardState->hand[i]->spell->name + " (" + PlayStatusToText(boardState->hand[i]->status) + ")",
 			24);
 	}
 
@@ -74,11 +74,10 @@ void ConsoleFormatter::WriteStatusToScreen(BoardStatus* boardState)
 	PrintAtCoord(0, 6, "", 60);
 
 	for (unsigned int i = 0; i < boardState->effects.size(); i++) {
-		PrintAtCoord(0 + 25 * (i % 3),
-			5 + (int)(i * 0.35),
+		PrintAtCoord(73, 2 + i,
 			//hand[i]->bReady ? "Ready" : "Charging(" + std::to_string((unsigned int)hand[i]->readyPixelColor) + ")" ,
 			SpellTypeToText(boardState->effects[i]->effectType) + " " + std::to_string((int)(boardState->effects[i]->timeEnding - boardState->effects[i]->timeStored)),
-			24);
+			16);
 	}
 }
 

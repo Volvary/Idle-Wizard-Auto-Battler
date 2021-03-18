@@ -15,15 +15,17 @@ struct Parchment {
 	///Debug
 	uint16_t readyPixelColor;
 	Pixel averageIconColor;
+	PlayStatus status;
 
 	Parchment() {
 		position = -1;		//Initialize the position to -1 so we know it's not an appropriately setup Parchment.
 		spell = nullptr;
+		status = PlayStatus::UnknownReason;
 	}
 
 	Parchment(Parchment* InParchment) {
 		bReady = InParchment->bReady;
-		spell = InParchment->spell;
+		spell = InParchment->spell ? InParchment->spell : nullptr;
 		position = InParchment->position;
 		bConfirmed = InParchment->bConfirmed;
 		hysteresisCounter = InParchment->hysteresisCounter;
@@ -34,6 +36,9 @@ struct Parchment {
 
 	Parchment(bool IsReady, SpellTypes SpellType, int Position) : bReady(IsReady), position(Position) {
 		spell = Spell::GetSpellByType(SpellType);
+		if (!spell) {
+			spell = nullptr;
+		}
 	}
 
 	virtual bool IsBurnSpell() {
@@ -69,6 +74,7 @@ struct Parchment {
 	}
 
 	virtual bool ShouldCastNow(BoardStatus* boardState) {
+		status = PlayStatus::AlwaysPlay;
 		return true;
 	}
 
@@ -101,7 +107,7 @@ struct DamageBuff : public Parchment {
 
 	DamageBuff(Parchment* InParchment) {
 		bReady = InParchment->bReady;
-		spell = InParchment->spell;
+		spell = InParchment->spell ? InParchment->spell : nullptr;
 		position = InParchment->position;
 		bConfirmed = InParchment->bConfirmed;
 		hysteresisCounter = InParchment->hysteresisCounter;
@@ -112,6 +118,12 @@ struct DamageBuff : public Parchment {
 
 	virtual bool ShouldCastNow(BoardStatus* boardState) override
 	{
+
+		if (boardState->enemyHealth == HealthStatus::Frenzy) {
+			status = PlayStatus::Frenzy;
+			return true;
+		}
+
 		int readySpells = 0;
 		bool overrideMW = false;
 		bool shouldCast = true;
@@ -134,12 +146,16 @@ struct DamageBuff : public Parchment {
 		}
 
 		if (!shouldCast && !overrideMW) {
+			status = PlayStatus::OtherBuffCharging;
 			return false;
 		}
 		
 		if (readySpells >= 3) {
+			status = PlayStatus::BuffsReady;
 			return true;
 		}
+
+		status = PlayStatus::NotEnoughDamage;
 		return false;
 	}
 
@@ -149,6 +165,7 @@ struct BurnSpell : public Parchment {
 	bool ShouldCastNow(BoardStatus* boardState) override {
 		
 		if (boardState->enemyHealth == HealthStatus::Frenzy) {
+			status = PlayStatus::Frenzy;
 			return true;
 		}
 
@@ -157,7 +174,7 @@ struct BurnSpell : public Parchment {
 
 		//Count buffs in hand
 		for (Parchment* parchment : boardState->hand) {
-			if (parchment->spell->type == SpellTypes::VoidSyphon || parchment->spell->type == SpellTypes::MagicWeapon) {
+			if (/*parchment->spell->type == SpellTypes::VoidSyphon ||*/ parchment->spell->type == SpellTypes::MagicWeapon) {
 				buffsInHand++;
 			}
 		}
@@ -170,10 +187,12 @@ struct BurnSpell : public Parchment {
 		}
 
 		//If we have less buffs in hand, cast it.
-		if (activeBuffs < buffsInHand) {
+		if (activeBuffs < buffsInHand && activeBuffs < 2) {
+			status = PlayStatus::OtherBuffCharging;
 			return false;
 		}
 
+		status = activeBuffs > 0 ? PlayStatus::BuffsReady : PlayStatus::NotEnoughBuff;
 		return activeBuffs > 0;
 	}
 
@@ -183,7 +202,7 @@ struct BurnSpell : public Parchment {
 
 	BurnSpell(Parchment* InParchment) {
 		bReady = InParchment->bReady;
-		spell = InParchment->spell;
+		spell = InParchment->spell ? InParchment->spell : nullptr;
 		position = InParchment->position;
 		bConfirmed = InParchment->bConfirmed;
 		hysteresisCounter = InParchment->hysteresisCounter;
@@ -207,6 +226,7 @@ struct LightningBolt : public BurnSpell {
 		for (Parchment* parchment : boardState->hand) {
 			if (parchment->spell->type == SpellTypes::VoidSyphon || parchment->spell->type == SpellTypes::KelphiorBlackBeam || parchment->spell->type == SpellTypes::Hellstorm) {
 				if (!parchment->bReady) {
+					status = PlayStatus::ChargeBigSpell;
 					return true;
 				}
 			}
@@ -217,7 +237,7 @@ struct LightningBolt : public BurnSpell {
 
 	LightningBolt(Parchment* InParchment) {
 		bReady = InParchment->bReady;
-		spell = InParchment->spell;
+		spell = InParchment->spell ? InParchment->spell : nullptr;
 		position = InParchment->position;
 		bConfirmed = InParchment->bConfirmed;
 		hysteresisCounter = InParchment->hysteresisCounter;
@@ -230,13 +250,15 @@ struct LightningBolt : public BurnSpell {
 struct Cantrip : public BurnSpell {
 	bool ShouldCastNow(BoardStatus* boardState) override {
 		
+		status = boardState->enemyHealth == HealthStatus::Frenzy ? PlayStatus::Frenzy : (boardState->hand.size() < 5 ? PlayStatus::Cantripping : PlayStatus::CantCantrip);
+
 		return boardState->hand.size() < 5 || boardState->enemyHealth == HealthStatus::Frenzy;
 
 	}
 
 	Cantrip(Parchment* InParchment) {
 		bReady = InParchment->bReady;
-		spell = InParchment->spell;
+		spell = InParchment->spell ? InParchment->spell : nullptr;
 		position = InParchment->position;
 		bConfirmed = InParchment->bConfirmed;
 		hysteresisCounter = InParchment->hysteresisCounter;

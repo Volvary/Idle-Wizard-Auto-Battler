@@ -8,12 +8,14 @@
 struct Parchment;
 class StatusEffect;
 struct BoardStatus;
+class ConsoleFormatter;
 
 class LogicalBrain
 {
 	std::vector<Parchment*> cardsToPlay;
 	Parchment* nextCardToPlay = nullptr;
 	BoardStatus* boardState = nullptr;
+	ConsoleFormatter* console = nullptr;
 
 	int interactionSleep = 0;
 
@@ -24,8 +26,10 @@ class LogicalBrain
 
 	bool bNeedToRestart = false;
 
-	const int totalExpeditions = 2;
+	int totalExpeditions = 2;
 	int completedExpedition = 0;
+
+	bool IsSleeping();
 public:
 	void QueueMovementEvent(int posX, int posY, bool bShouldClick = true);
 	void QueueMovementEvent(Pixel pixelToClick);
@@ -33,8 +37,15 @@ public:
 	void DecideInteractionForFrame();
 	void AnalyzeHand(BoardStatus* boardStatus);
 
+	void AddExpedition(int expeditionToAdd);
+
 	LogicalBrain();
 	~LogicalBrain();
 	bool RoundFinished(bool bStageCompleted);
-	void IterateLogic();
+
+	void PrintCurrentExpeditions();
+
+	bool IterateLogic();
+
+	void SetConsoleFormatter(ConsoleFormatter* consoleFormatter);
 };

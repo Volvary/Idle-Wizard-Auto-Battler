@@ -6,6 +6,18 @@
 #include "BoardStatus.h"
 #include "ScreenReader.h"
 #include <typeinfo>
+#include "ConsoleFormatter.h"
+
+bool LogicalBrain::IsSleeping()
+{
+	if (interactionSleep > 0) {
+		interactionSleep--;
+		console->PrintAtCoord(26, 0, "Interaction Sleep: " + std::to_string(interactionSleep), 24);
+		return true;
+	}
+
+	return false;
+}
 
 void LogicalBrain::QueueMovementEvent(Pixel pixelToClick) {
 	QueueMovementEvent(pixelToClick.X, pixelToClick.Y);
@@ -40,8 +52,7 @@ void LogicalBrain::QueueMovementEvent(int posX, int posY, bool bShouldClick)
 
 void LogicalBrain::DecideInteractionForFrame()
 {
-	if (interactionSleep > 0) {
-		interactionSleep--;
+	if (IsSleeping()) {
 		return;
 	}
 
@@ -78,7 +89,23 @@ void LogicalBrain::DecideInteractionForFrame()
 	}
 	else
 	{
+		//Purge parchments that could be invalid at this point.
+		for (int i = 0; i < cardsToPlay.size(); i++) {
+			if (!cardsToPlay[i]) {
+				cardsToPlay.erase(cardsToPlay.begin() + i);
+				i--;
+			}
+			else if (!cardsToPlay[i]->bReady || !cardsToPlay[i]->bConfirmed) {
+				cardsToPlay.erase(cardsToPlay.begin() + i);
+				i--;
+			}
+		}
+
 		if (cardsToPlay.size() > 0) {
+			for (int i = 0; i < cardsToPlay.size(); i++) {
+				console->PrintAtCoord(0 + (i % 3 * 20), 6 + (int)(i % 3 * 0.3), SpellTypeToText(cardsToPlay[i]->spell->type) + " " + PlayStatusToText(cardsToPlay[i]->status), 20);
+			}
+
 			nextCardToPlay = cardsToPlay[0];
 			cardsToPlay.erase(cardsToPlay.begin());
 		}
@@ -97,6 +124,7 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 	if (nextCardToPlay == nullptr) {
 
 		std::vector<Parchment*> spellsToPlay;
+		cardsToPlay.clear();
 
 		for (Parchment* parchment : boardState->hand) {
 			if (parchment && parchment->bReady && parchment->bConfirmed && parchment->spell->type != SpellTypes::Unknown) {
@@ -104,10 +132,12 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 					spellsToPlay.push_back(parchment);
 				}
 			}
+			else if (parchment && !parchment->bReady) {
+				parchment->status = PlayStatus::Charging;
+			}
 		}
 
 		if (spellsToPlay.size() > 0) {
-			cardsToPlay.clear();
 			for (Parchment* parchment : spellsToPlay) {
 				//Push spells to the front of the queue if they are buffs.
 				if (parchment->spell->type == SpellTypes::VoidSyphon || parchment->spell->type == SpellTypes::MagicWeapon) {
@@ -140,11 +170,18 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 				}
 
 				if (spellToWaste != nullptr) {
+					spellToWaste->status = PlayStatus::HandFull;
 					cardsToPlay.push_back(spellToWaste);
 				}
 			}
 		}
 	}
+}
+
+void LogicalBrain::AddExpedition(int expeditionToAdd)
+{
+	totalExpeditions += expeditionToAdd;
+	PrintCurrentExpeditions();
 }
 
 LogicalBrain::LogicalBrain()
@@ -172,10 +209,7 @@ LogicalBrain::~LogicalBrain()
 
 bool LogicalBrain::RoundFinished(bool bStageCompleted)
 {
-	completedExpedition++;
-
-	if (interactionSleep > 0) {
-		interactionSleep--;
+	if (IsSleeping()) {
 		return false;
 	}
 
@@ -188,10 +222,15 @@ bool LogicalBrain::RoundFinished(bool bStageCompleted)
 		QueueMovementEvent(ContinuePress);
 	}
 	else {
+
+		completedExpedition++;
+		PrintCurrentExpeditions();
+
+
 		interactionSleep = 500;
 		QueueMovementEvent(ContinuePress);
 
-		bNeedToRestart = completedExpedition <= totalExpeditions;
+		bNeedToRestart = completedExpedition < totalExpeditions;
 
 		return bNeedToRestart;
 	}
@@ -199,10 +238,26 @@ bool LogicalBrain::RoundFinished(bool bStageCompleted)
 	return false;
 }
 
-void LogicalBrain::IterateLogic()
+void LogicalBrain::PrintCurrentExpeditions()
 {
+	console->PrintAtCoord(52, 0, "Expeditions: " + std::to_string(completedExpedition + 1) + "/" + std::to_string(totalExpeditions), 20);
+}
+
+bool LogicalBrain::IterateLogic()
+{
+	if (IsSleeping()) {
+		return true;
+	}
+
 	if (bNeedToRestart) {
 		interactionSleep = 50;
 		QueueMovementEvent(StartPress);
 	}
+	return false;
+}
+
+void LogicalBrain::SetConsoleFormatter(ConsoleFormatter* consoleFormatter)
+{
+	console = consoleFormatter;
+	console->PrintAtCoord(52, 0, "Expeditions: 1/" + std::to_string(totalExpeditions), 20);
 }

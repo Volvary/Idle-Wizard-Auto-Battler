@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "Spells.h"
+#include "PlayStatus.h"
 
 #define DEBUG_MEMORY 1
 
@@ -21,6 +22,8 @@ enum class HealthStatus {
 std::string HealthStatusToText(HealthStatus Status);
 
 std::string SpellTypeToText(SpellTypes Status);
+
+std::string PlayStatusToText(PlayStatus Status);
 
 namespace DebugMemory {
 

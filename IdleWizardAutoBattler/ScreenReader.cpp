@@ -23,23 +23,7 @@ ScreenReader::~ScreenReader()
 {
 	DeleteDC(capturedDC);
 
-	while (parchmentsInHand.size() > 0) {
-		delete parchmentsInHand.back();
-		parchmentsInHand.pop_back();
-		
-		if (DEBUG_MEMORY) {
-			DebugMemory::IncrementParchmentDestroyed();
-		}
-	}
-
-	while (activeBuffs.size() > 0) {
-		delete activeBuffs.back();
-		activeBuffs.pop_back();
-
-		if (DEBUG_MEMORY) {
-			DebugMemory::IncrementEffectsDestroyed();
-		}
-	}
+	EmptyLists();
 
 	DeleteSpellList();
 }
@@ -295,7 +279,7 @@ Parchment* ScreenReader::ConfirmParchmentSubtype(Parchment* current)
 		replacement = new Cantrip(current);
 		break;
 	case SpellTypes::MagicWeapon:
-	case SpellTypes:: VoidSyphon:
+	case SpellTypes::VoidSyphon:
 		replacement = new DamageBuff(current);
 		break;
 	default:
@@ -325,24 +309,50 @@ bool ScreenReader::IsWaitingOnVictoryScreen(bool& OutStageCompleted)
 	bool bSuccess = GetAveragePixelAtCoords(VictoryCornerPoint - VictorySamplingSize, VictoryCornerLine - VictorySamplingSize,
 		VictoryCornerPoint + VictorySamplingSize, VictoryCornerLine + VictorySamplingSize, ContinueBox);
 
+	bool bOut = false;
+
 	if (bSuccess) {
 		int continueAverage = abs((int)(ContinueBox.R - ContinueSampleAverage.R)) + abs((int)(ContinueBox.G - ContinueSampleAverage.G)) + abs((int)(ContinueBox.B - ContinueSampleAverage.B));
 		if(continueAverage < VICTORY_TEST_THRESHOLD){
 			OutStageCompleted = false;
-			return true;
+			bOut = true;
 		}
 		int backToLobby = abs((int)(ContinueBox.R - BackSampleAverage.R)) + abs((int)(ContinueBox.G - BackSampleAverage.G)) + abs((int)(ContinueBox.B - BackSampleAverage.B));
 
 		if (backToLobby < LOBBY_TEST_THRESHOLD) {
 			OutStageCompleted = true;
-			return true;
+			bOut = true;
 		}
-		/*if ((GetKeyState(VK_TAB) & 0x0001) == 0) {
-			std::cout << ContinueBox.R << " " << ContinueBox.G << " " << ContinueBox.B << " ";
-		}*/
 	}
 
-	return false;
+	if (bOut == true) {
+		EmptyLists();
+		activeBuffs.clear();
+		parchmentsInHand.clear();
+	}
+
+	return bOut;
+}
+
+void ScreenReader::EmptyLists()
+{
+	while (parchmentsInHand.size() > 0) {
+		delete parchmentsInHand.back();
+		parchmentsInHand.pop_back();
+
+		if (DEBUG_MEMORY) {
+			DebugMemory::IncrementParchmentDestroyed();
+		}
+	}
+
+	while (activeBuffs.size() > 0) {
+		delete activeBuffs.back();
+		activeBuffs.pop_back();
+
+		if (DEBUG_MEMORY) {
+			DebugMemory::IncrementEffectsDestroyed();
+		}
+	}
 }
 
 Pixel ScreenReader::GetClickLocationPerSpell(Parchment* parchment)

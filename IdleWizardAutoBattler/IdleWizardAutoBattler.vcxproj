@@ -156,6 +156,7 @@
     <ClInclude Include="BoardStatus.h" />
     <ClInclude Include="LogicalBrain.h" />
     <ClInclude Include="ObjectPooler.h" />
+    <ClInclude Include="PlayStatus.h" />
     <ClInclude Include="StatusEffect.h" />
     <ClInclude Include="ConsoleFormatter.h" />
     <ClInclude Include="Parchment.h" />

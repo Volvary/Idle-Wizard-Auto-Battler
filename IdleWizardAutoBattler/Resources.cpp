@@ -84,6 +84,59 @@ std::string SpellTypeToText(SpellTypes Status)
 	return Out;
 }
 
+std::string PlayStatusToText(PlayStatus Status)
+{
+	std::string Out = "";
+
+	switch (Status)
+	{
+	default:
+		break;
+	case UnknownReason:
+		Out = "Unk";
+		break;
+	case Charging:
+		Out = "C..";
+		break;
+	case NotEnoughBuff:
+		Out = "NEB";
+		break;
+	case NotEnoughDamage:
+		Out = "NED";
+		break;
+	case CantCantrip:
+		Out = "CC";
+		break;
+	case VoidManaFull:
+		Out = "VMF";
+		break;
+	case OtherBuffCharging:
+		Out = "OBC";
+		break;
+	case HandFull:
+		Out = "HF";
+		break;
+	case BuffsReady:
+		Out = "BR";
+		break;
+	case Cantripping:
+		Out = "Ca";
+		break;
+	case AlwaysPlay:
+		Out = "AP";
+		break;
+	case ChargeBigSpell:
+		Out = "CBS";
+		break;
+	case Frenzy:
+		Out = "FRE";
+		break;
+	}
+
+	return Out;
+}
+
+
 static int ParchmentCreated = 0;
 static int ParchmentDestroyed = 0;
 

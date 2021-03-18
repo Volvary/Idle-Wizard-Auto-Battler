@@ -89,6 +89,8 @@ public:
 	bool IsInCombat();
 	bool IsWaitingOnVictoryScreen(bool& OutStageCompleted);
 
+	void EmptyLists();
+
 	static Pixel GetClickLocationPerSpell(Parchment* parchment);
 	static bool RegisterStatusEffect(StatusEffect* effect);
 };

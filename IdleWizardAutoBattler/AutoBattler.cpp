@@ -8,6 +8,7 @@
 #include "LogicalBrain.h"
 #include "BoardStatus.h"
 #include "ObjectPooler.h"
+#include <time.h>
 
 
 AutoBattler::AutoBattler()
@@ -15,6 +16,7 @@ AutoBattler::AutoBattler()
 	reader = new ScreenReader();
 	formatter = new ConsoleFormatter();
 	brain = new LogicalBrain();
+	brain->SetConsoleFormatter(formatter);
 }
 
 
@@ -32,6 +34,8 @@ void AutoBattler::Init()
 	bool bDone = false;
 	bool bAlerted = false;
 	bool bLogicRequired = false;
+	bool bLastFramePlusState = false;
+	bool bLastFrameMinusState = false;
 	
 	while (!bDone) {
 
@@ -40,6 +44,7 @@ void AutoBattler::Init()
 				formatter->PrintAtCoord(0,5, "Caps Lock active, interrupting execution.", 43);
 				bAlerted = true;
 			}
+			Sleep(100);
 			continue;
 		}
 
@@ -59,8 +64,7 @@ void AutoBattler::Init()
 			formatter->WriteStatusToScreen(&boardState);
 		}
 		else if (bLogicRequired) {
-			bLogicRequired = false;
-			brain->IterateLogic();
+			bLogicRequired = brain->IterateLogic();
 		}
 		else{
 			bool bStageCompleted = false;
@@ -69,29 +73,26 @@ void AutoBattler::Init()
 					bLogicRequired = true;
 				}
 			}
+			else {
+				Sleep(1000);
+			}
 		}
 
-		/* Spell Threshold Range Analyzer */
-		/*auto SpellList = GetSpellList();
-		int line = 9;
-		for(Spell* spell: SpellList) {
-			for (Spell * otherSpell : SpellList) {
-				if (spell != otherSpell) {
-					int TotalRGBDifference = abs((int)(spell->averageIconColor.R - otherSpell->averageIconColor.R)) +
-						abs((int)(spell->averageIconColor.G - otherSpell->averageIconColor.G)) +
-						abs((int)(spell->averageIconColor.B - otherSpell->averageIconColor.B));
-
-					if (TotalRGBDifference < SPELLDETECTION_THRESHOLD){
-						formatter->PrintAtCoord(0, line, spell->name + " and " + otherSpell->name + " are in range of each other.", 0);
-						line++;
-					}
-					else if	(TotalRGBDifference < SPELLDETECTION_THRESHOLD * 2) {
-						formatter->PrintAtCoord(0, line, spell->name + " and " + otherSpell->name + " are in extended range of each other.", 0);
-						line++;
-					}
-				}
+		bool bAdd = GetKeyState(VK_ADD);		//Num +
+		bool bSub = GetKeyState(VK_SUBTRACT);	//Num -
+		if (bAdd != bLastFramePlusState) {
+			bLastFramePlusState = bAdd;
+			if (bAdd) {
+				brain->AddExpedition(1);
 			}
-		}*/
+		}
+
+		if (bSub != bLastFrameMinusState) {
+			bLastFrameMinusState = bSub;
+			if (bSub) {
+				brain->AddExpedition(-1);
+			}
+		}
 
 		bDone = GetKeyState(VK_END);
 	}
