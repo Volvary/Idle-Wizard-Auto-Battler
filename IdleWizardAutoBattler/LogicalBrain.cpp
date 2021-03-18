@@ -11,7 +11,6 @@
 bool LogicalBrain::IsSleeping()
 {
 	if (interactionSleep > 0) {
-		interactionSleep--;
 		console->PrintAtCoord(26, 0, "Interaction Sleep: " + std::to_string(interactionSleep), 24);
 		return true;
 	}
@@ -56,12 +55,14 @@ void LogicalBrain::DecideInteractionForFrame()
 		return;
 	}
 
-	if (boardState->playerHealth == HealthStatus::Panic) {
+	if (boardState && boardState->playerHealth == HealthStatus::Panic) {
 		interactionSleep = HEAL_SLEEP;
 		QueueMovementEvent(ScreenReader::GetHealthPotionPosition());
+		console->AddEventToLog("Player Health critical, using a potion.");
 	}
 	
 	if (nextCardToPlay != nullptr) {
+		bIsBurning = false;
 		if (!nextCardToPlay->bReady || !nextCardToPlay->bConfirmed) {
 			nextCardToPlay = nullptr;
 			QueueMovementEvent(100, 600, false);
@@ -102,10 +103,6 @@ void LogicalBrain::DecideInteractionForFrame()
 		}
 
 		if (cardsToPlay.size() > 0) {
-			for (int i = 0; i < cardsToPlay.size(); i++) {
-				console->PrintAtCoord(0 + (i % 3 * 20), 6 + (int)(i % 3 * 0.3), SpellTypeToText(cardsToPlay[i]->spell->type) + " " + PlayStatusToText(cardsToPlay[i]->status), 20);
-			}
-
 			nextCardToPlay = cardsToPlay[0];
 			cardsToPlay.erase(cardsToPlay.begin());
 		}
@@ -118,8 +115,12 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 	if (completedExpedition >= totalExpeditions) {
 		completedExpedition = 0;
 	}
-
 	boardState = boardStatus;
+
+	if (IsSleeping() || bIsBurning) {	//Skip this Analyze if we are sleeping or waiting for a parchment to be burned.
+		return;
+	}
+
 
 	if (nextCardToPlay == nullptr) {
 
@@ -146,14 +147,15 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 				else {
 					cardsToPlay.push_back(parchment);
 				}
+				console->AddEventToLog("Playing spell " + SpellTypeToText(parchment->spell->type) + " with reason " + PlayStatusToText(parchment->status));
 			}
 		}
 		else {
-			if (boardState->hand.size() >= 5) {
+			if (boardState->hand.size() > 5) {
 				Parchment* spellToWaste = nullptr;
 				int spellPriority = INT_MAX;
 				for (Parchment* spell : boardState->hand) {
-					if (spell->position != -1 && spell->bReady) {
+					if (spell->position != -1 && spell->bReady && spell->bConfirmed) {
 						auto it = spellWastePriority.find(spell->spell->type);
 						if (it != spellWastePriority.end()) {
 							int priority = it->second;
@@ -172,6 +174,8 @@ void LogicalBrain::AnalyzeHand(BoardStatus* boardStatus)
 				if (spellToWaste != nullptr) {
 					spellToWaste->status = PlayStatus::HandFull;
 					cardsToPlay.push_back(spellToWaste);
+					console->AddEventToLog("Hand is full, burning #" + std::to_string(spellToWaste->position));
+					bIsBurning = true;
 				}
 			}
 		}
@@ -217,6 +221,8 @@ bool LogicalBrain::RoundFinished(bool bStageCompleted)
 	boardState = nullptr;
 	nextCardToPlay = nullptr;
 
+	console->RoundFinished(bStageCompleted);
+
 	if (!bStageCompleted) {
 		interactionSleep = 50;
 		QueueMovementEvent(ContinuePress);
@@ -260,4 +266,23 @@ void LogicalBrain::SetConsoleFormatter(ConsoleFormatter* consoleFormatter)
 {
 	console = consoleFormatter;
 	console->PrintAtCoord(52, 0, "Expeditions: 1/" + std::to_string(totalExpeditions), 20);
+
+	console->PrintAtCoord(80, 10, PlayStatusToText(PlayStatus::AlwaysPlay) + " = " + "Always Play" , 0);
+	console->PrintAtCoord(80, 11, PlayStatusToText(PlayStatus::BuffsReady) + " = " + "Buffs Ready" , 0);
+	console->PrintAtCoord(80, 12, PlayStatusToText(PlayStatus::CantCantrip) + " = " + "Can't Cantrip" , 0);
+	console->PrintAtCoord(80, 13, PlayStatusToText(PlayStatus::Cantripping) + " = " + "Cantripping" , 0);
+	console->PrintAtCoord(80, 14, PlayStatusToText(PlayStatus::ChargeBigSpell) + " = " + "Charge Big Spell" , 0);
+	console->PrintAtCoord(80, 15, PlayStatusToText(PlayStatus::Charging) + " = " + "Charging" , 0);
+	console->PrintAtCoord(80, 16, PlayStatusToText(PlayStatus::Frenzy) + " = " + "Frenzy" , 0);
+	console->PrintAtCoord(80, 17, PlayStatusToText(PlayStatus::HandFull) + " = " + "Hand Full" , 0);
+	console->PrintAtCoord(80, 18, PlayStatusToText(PlayStatus::NotEnoughBuff) + " = " + "Not Enough Buff" , 0);
+	console->PrintAtCoord(80, 19, PlayStatusToText(PlayStatus::NotEnoughDamage) + " = " + "Not Enough Damage" , 0);
+	console->PrintAtCoord(80, 20, PlayStatusToText(PlayStatus::OtherBuffCharging) + " = " + "Other Buff Charging" , 0);
+}
+
+void LogicalBrain::TickSleep()
+{
+	if (interactionSleep) {
+		interactionSleep--;
+	}
 }

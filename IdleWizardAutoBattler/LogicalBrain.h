@@ -25,6 +25,7 @@ class LogicalBrain
 	Pixel StartPress = Pixel(1180, 950);
 
 	bool bNeedToRestart = false;
+	bool bIsBurning = false;
 
 	int totalExpeditions = 2;
 	int completedExpedition = 0;
@@ -48,4 +49,6 @@ public:
 	bool IterateLogic();
 
 	void SetConsoleFormatter(ConsoleFormatter* consoleFormatter);
+
+	void TickSleep();
 };

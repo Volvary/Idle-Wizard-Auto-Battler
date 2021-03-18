@@ -17,3 +17,8 @@ struct BoardStatus {
 
 	}
 };
+
+struct ConsoleBoardStatus {	//Used by the ConsoleFormatter to remember information about the last frame of the Board.
+	std::vector<std::string> parchmentScreenText;
+	std::vector<std::string> effectsScreenText;
+};

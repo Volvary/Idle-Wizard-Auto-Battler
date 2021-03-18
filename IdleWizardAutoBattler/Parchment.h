@@ -130,7 +130,7 @@ struct DamageBuff : public Parchment {
 
 		for (Parchment* parchment : boardState->hand) {
 			
-			if(parchment->spell->type == SpellTypes::MagicWeapon){
+			if(parchment->spell->type == SpellTypes::MagicWeapon || parchment->spell->type == SpellTypes::VoidSyphon){
 				if (!parchment->bReady) {
 					shouldCast = false;
 				}
@@ -250,9 +250,9 @@ struct LightningBolt : public BurnSpell {
 struct Cantrip : public BurnSpell {
 	bool ShouldCastNow(BoardStatus* boardState) override {
 		
-		status = boardState->enemyHealth == HealthStatus::Frenzy ? PlayStatus::Frenzy : (boardState->hand.size() < 5 ? PlayStatus::Cantripping : PlayStatus::CantCantrip);
+		status = boardState->enemyHealth == HealthStatus::Frenzy ? PlayStatus::Frenzy : (boardState->hand.size() < 6 ? PlayStatus::Cantripping : PlayStatus::CantCantrip);
 
-		return boardState->hand.size() < 5 || boardState->enemyHealth == HealthStatus::Frenzy;
+		return boardState->hand.size() < 6 || boardState->enemyHealth == HealthStatus::Frenzy;
 
 	}
 

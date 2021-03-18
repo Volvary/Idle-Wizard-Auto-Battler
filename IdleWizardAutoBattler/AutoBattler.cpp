@@ -41,7 +41,7 @@ void AutoBattler::Init()
 
 		if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0) {
 			if (!bAlerted) {
-				formatter->PrintAtCoord(0,5, "Caps Lock active, interrupting execution.", 43);
+				formatter->PrintAtCoord(0,7, "Caps Lock active, interrupting execution.", 43);
 				bAlerted = true;
 			}
 			Sleep(100);
@@ -49,7 +49,7 @@ void AutoBattler::Init()
 		}
 
 		if (bAlerted) {
-			formatter->PrintAtCoord(0,5,"Caps Lock disabled, resuming execution.", 43);
+			formatter->PrintAtCoord(0,7,"Caps Lock disabled, resuming execution.", 43);
 			bAlerted = false;
 		}
 
@@ -77,6 +77,7 @@ void AutoBattler::Init()
 				Sleep(1000);
 			}
 		}
+		brain->TickSleep();
 
 		bool bAdd = GetKeyState(VK_ADD);		//Num +
 		bool bSub = GetKeyState(VK_SUBTRACT);	//Num -
